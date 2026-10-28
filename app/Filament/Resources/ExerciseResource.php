@@ -12,12 +12,15 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 
 class ExerciseResource extends Resource
 {
     protected static ?string $model = Exercise::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Entrenamiento';
+    protected static ?string $navigationLabel = 'Ejercicios';
 
     public static function form(Form $form): Form
     {
@@ -62,9 +65,18 @@ class ExerciseResource extends Resource
             ]);
     }
 
-    public static function canViewAny(): bool
+    public static function getEloquentQuery(): Builder
     {
-        return auth()->user()->isAdmin();
+        $query = parent::getEloquentQuery();
+
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+
+        if ($user && ! $user->isAdmin()) {
+            $query->where('user_id', $user->id);
+        }
+
+        return $query;
     }
 
     public static function getRelations(): array

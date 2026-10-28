@@ -12,13 +12,15 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 
 class HabitLogResource extends Resource
 {
     protected static ?string $model = HabitLog::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-    protected static ?string $navigationLabel = 'Seguimiento de Hábitos';
+    protected static ?string $navigationGroup = 'Seguimiento';
+    protected static ?string $navigationLabel = 'Hábitos Diarios';
 
     public static function form(Form $form): Form
     {
@@ -85,8 +87,11 @@ class HabitLogResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        if (! auth()->user()->isAdmin()) {
-            $query->where('user_id', auth()->id());
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+
+        if ($user && ! $user->isAdmin()) {
+            $query->where('user_id', $user->id);
         }
 
         return $query;

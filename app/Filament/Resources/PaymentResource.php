@@ -7,6 +7,7 @@ use App\Filament\Resources\PaymentResource\Pages\CreatePayment;
 use App\Filament\Resources\PaymentResource\Pages\EditPayment;
 use App\Filament\Resources\PaymentResource\RelationManagers;
 use App\Models\Payment;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -14,6 +15,9 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
+use Filament\Notifications\Notification;
+use Filament\Tables\Actions\Action;
 
 
 class PaymentResource extends Resource
@@ -21,6 +25,8 @@ class PaymentResource extends Resource
     protected static ?string $model = Payment::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Finanzas';
+    protected static ?string $navigationLabel = 'Pagos y Cuotas';
 
     public static function form(Form $form): Form
     {
@@ -55,6 +61,20 @@ class PaymentResource extends Resource
             ]);
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+
+        if ($user && ! $user->isAdmin()) {
+            $query->where('user_id', $user->id);
+        }
+
+        return $query;
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -76,6 +96,28 @@ class PaymentResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Action::make('sendReminder')
+                    ->label('Enviar Recordatorio')
+                    ->icon('heroicon-o-bell')
+                    ->color('warning')
+                    ->visible(function (Payment $record): bool {
+                        /** @var \App\Models\User|null $user */
+                        $user = Auth::user();
+
+                        return $record->status !== 'paid' && $user && $user->isAdmin();
+                    })
+                    ->action(function (Payment $record) {
+                        Notification::make()
+                            ->title('Recordatorio de Pago Pending')
+                            ->body("Hola {$record->user->name}, tienes una cuota de $" . number_format($record->amount, 2) . " con vencimiento el {$record->due_date}.")
+                            ->warning()
+                            ->sendToDatabase($record->user);
+
+                        Notification::make()
+                            ->title('Notificación enviada')
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -90,16 +132,8 @@ class PaymentResource extends Resource
             //
         ];
     }
-    public static function getEloquentQuery(): Builder
-    {
-        $query = parent::getEloquentQuery();
 
-        if (! auth()->user()->isAdmin()) {
-            $query->where('user_id', auth()->id());
-        }
 
-        return $query;
-    }
 
     public static function getPages(): array
     {

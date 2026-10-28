@@ -12,12 +12,17 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
+use Filament\Tables\Actions\Action;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class RoutineResource extends Resource
 {
     protected static ?string $model = Routine::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Entrenamiento';
+    protected static ?string $navigationLabel = 'Rutinas';
 
     public static function form(Form $form): Form
     {
@@ -76,13 +81,27 @@ class RoutineResource extends Resource
     {
         return $table
             ->columns([
-                //
+                Tables\Columns\TextColumn::make('user.name')->label('Cliente')->searchable(),
+                Tables\Columns\TextColumn::make('name')->label('Nombre de Rutina')->searchable(),
+                Tables\Columns\TextColumn::make('created_at')->label('Creada')->date(),
             ])
             ->filters([
                 //
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Action::make('downloadPdf')
+                    ->label('Descargar PDF')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('success')
+                    ->action(function (Routine $record) {
+                        $pdf = Pdf::loadView('pdf.routine', ['routine' => $record]);
+
+                        return response()->streamDownload(
+                            fn() => print($pdf->output()),
+                            "rutina-{$record->id}.pdf"
+                        );
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -111,8 +130,11 @@ class RoutineResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        if (! auth()->user()->isAdmin()) {
-            $query->where('user_id', auth()->id());
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+
+        if ($user && ! $user->isAdmin()) {
+            $query->where('user_id', $user->id);
         }
 
         return $query;
