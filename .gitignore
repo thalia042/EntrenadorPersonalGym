@@ -1,0 +1,50 @@
+# Archivos de entorno y credenciales sensibles
+.env
+.env.*
+!.env.example
+*.db
+*.sqlite
+*.sqlite-journal
+
+# Dependencias y paquetes instalados
+/vendor/
+/node_modules/
+
+# Archivos estáticos compilados y almacenamiento local
+/public/storage
+/public/build
+/public/hot
+/public/fonts-manifest.dev.json
+/storage/*.key
+/storage/app/public/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/testing/
+/storage/framework/views/
+/storage/logs/
+/storage/pail/
+
+# Archivos de configuración de IDEs y editores
+/.codex/
+/.cursor/
+/.idea/
+/.nova/
+/.vscode/
+/.zed/
+.fleet/
+.phpactor.json
+_ide_helper.php
+
+# Logs, caché y temporales
+*.log
+.DS_Store
+Thumbs.db
+npm-debug.log
+yarn-error.log
+.phpunit.result.cache
+/.phpunit.cache/
+
+# Homestead y Auth
+Homestead.json
+Homestead.yaml
+/auth.json
